@@ -1,0 +1,97 @@
+name: llm-self-debugging-env
+version: 1.0.0
+description: >
+  An OpenEnv environment where an AI agent reads buggy Python/PyTorch code,
+  identifies the root cause, applies a fix, executes it, and verifies correctness
+  through test pass rates. Simulates real-world ML engineering debugging workflows.
+
+author: OpenEnv Hackathon Submission
+license: MIT
+
+action_space:
+  type: object
+  required: [fix_code, explanation, bug_type]
+  properties:
+    fix_code:
+      type: string
+      description: The corrected Python/PyTorch code submitted by the agent
+    explanation:
+      type: string
+      description: Agent's explanation of what the bug was and how it was fixed
+    bug_type:
+      type: string
+      enum: [syntax_error, shape_mismatch, gradient_issue, logic_error, runtime_error]
+      description: Agent's classification of the bug category
+
+observation_space:
+  type: object
+  properties:
+    buggy_code:
+      type: string
+      description: The broken Python/PyTorch code to debug
+    error_message:
+      type: string
+      description: The error traceback or failure description
+    task_description:
+      type: string
+      description: What the code is supposed to do
+    test_cases:
+      type: array
+      description: List of test cases the fixed code must pass
+      items:
+        type: object
+        properties:
+          input: {type: string}
+          expected_output: {type: string}
+    attempt_number:
+      type: integer
+      description: Current attempt number (max 3 attempts per task)
+    previous_attempts:
+      type: array
+      description: History of previous fix attempts and their scores
+
+tasks:
+  - id: easy
+    name: Syntax & Basic Runtime Errors
+    description: Fix syntax errors and simple runtime bugs in PyTorch code
+    max_score: 0.4
+    max_attempts: 3
+
+  - id: medium
+    name: Tensor Shape Mismatches
+    description: Fix shape mismatch bugs in neural network forward passes
+    max_score: 0.7
+    max_attempts: 3
+
+  - id: hard
+    name: Gradient Flow & Training Loop Bugs
+    description: Fix broken gradient flow causing model to not learn
+    max_score: 1.0
+    max_attempts: 3
+
+reward:
+  description: Partial progress reward at each attempt
+  components:
+    - name: test_pass_rate
+      weight: 0.5
+      description: Fraction of test cases passing after fix
+    - name: bug_classification
+      weight: 0.2
+      description: Correct identification of bug category
+    - name: explanation_quality
+      weight: 0.2
+      description: Clarity and correctness of fix explanation
+    - name: code_quality
+      weight: 0.1
+      description: Clean, idiomatic PyTorch/Python code style
+  penalty:
+    - name: attempt_penalty
+      value: -0.05
+      description: Small penalty per extra attempt beyond first
+
+baseline:
+  script: baseline.py
+  expected_scores:
+    easy: 0.35
+    medium: 0.18
+    hard: 0.09

@@ -1,0 +1,10 @@
+FROM python:3.11-slim
+WORKDIR /app
+RUN apt-get update && apt-get install -y gcc curl && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+RUN touch env/__init__.py graders/__init__.py tasks/__init__.py
+EXPOSE 7860
+EXPOSE 7861
+CMD ["python", "app.py"]
